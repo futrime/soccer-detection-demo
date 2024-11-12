@@ -4,6 +4,7 @@ import pickle
 from typing import Dict, List, Tuple, Type, TypedDict
 
 import PIL.Image
+import torch.cuda
 import transformers
 
 HOST: str = "localhost"
@@ -52,7 +53,8 @@ class DetectionServer(http.server.HTTPServer):
         server_address: Tuple[str, int],
         RequestHandlerClass: Type[DetectionRequestHandler],
     ) -> None:
-        pipeline = transformers.pipeline(task="object-detection")
+        device = 0 if torch.cuda.is_available() else -1
+        pipeline = transformers.pipeline(task="object-detection", device=device)
         assert isinstance(pipeline, transformers.pipelines.ObjectDetectionPipeline)
         self.pipeline = pipeline
 
