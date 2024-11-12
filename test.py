@@ -1,4 +1,5 @@
 import pickle
+import time
 
 import PIL.Image
 import requests
@@ -7,6 +8,8 @@ from main import HOST, PORT, RequestModel, ResponseModel
 
 
 def main() -> None:
+    session = requests.Session()
+
     image = PIL.Image.open("test.png")
 
     request: RequestModel = {
@@ -14,16 +17,22 @@ def main() -> None:
     }
 
     data = pickle.dumps(request, protocol=2)
-    response = requests.post(
-        f"http://{HOST}:{PORT}",
-        data=data,
-        timeout=1000,
-    )
 
-    # Parse response
-    results: ResponseModel = pickle.loads(response.content)
+    while True:
+        start_time = time.perf_counter()
+        response = session.post(
+            f"http://{HOST}:{PORT}",
+            data=data,
+            timeout=10,
+        )
+        end_time = time.perf_counter()
 
-    print(results)
+        # Parse response
+        results: ResponseModel = pickle.loads(response.content)
+
+        print(f"Response received in {end_time - start_time} seconds:")
+        print(results)
+        print()
 
 
 if __name__ == "__main__":
