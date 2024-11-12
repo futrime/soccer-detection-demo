@@ -9,7 +9,7 @@ import transformers
 
 HOST: str = "localhost"
 PORT: int = 24680
-LOGGING_LEVEL: int = logging.DEBUG
+LOGGING_LEVEL: int = logging.INFO
 
 
 class RequestModel(TypedDict):
