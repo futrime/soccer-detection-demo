@@ -1,6 +1,8 @@
+import base64
 import http.server
+import io
+import json
 import logging
-import pickle
 import time
 from typing import Dict, List, Tuple, Type, TypedDict
 
@@ -15,7 +17,7 @@ MODEL: str = "facebook/detr-resnet-50"
 
 
 class RequestModel(TypedDict):
-    image: PIL.Image.Image
+    image: str  # base64 encoded jpg image
 
 
 class ResponseResultModel(TypedDict):
@@ -33,7 +35,6 @@ class DetectionRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs) -> None:
         self.protocol_version = "HTTP/1.1"
-
         super().__init__(*args, **kwargs)
 
     def do_POST(self) -> None:
@@ -41,21 +42,28 @@ class DetectionRequestHandler(http.server.BaseHTTPRequestHandler):
 
         logging.debug("Loading request...")
         content_length = int(self.headers.get("Content-Length", 0))
-        request = pickle.loads(self.rfile.read(content_length))
+        request_json = self.rfile.read(content_length).decode("utf-8")
+        request = json.loads(request_json)
+
+        # Decode base64 image
+        image_bytes = base64.b64decode(request["image"])
+        image = PIL.Image.open(io.BytesIO(image_bytes))
 
         logging.debug("Performing inference...")
         start_time = time.perf_counter()
-        response = pipeline(request["image"])
+        response = pipeline(image)
         end_time = time.perf_counter()
         logging.info("Inference done in %s seconds", end_time - start_time)
 
         logging.debug("Sending response...")
-        # Send Content-Length header so client knows when response is complete
-        response_data = pickle.dumps(response, protocol=2)
+        response_json = json.dumps(response)
+        response_bytes = response_json.encode("utf-8")
+
         self.send_response(200)
-        self.send_header("Content-Length", str(len(response_data)))
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(response_bytes)))
         self.end_headers()
-        self.wfile.write(response_data)
+        self.wfile.write(response_bytes)
 
         logging.debug("Response sent")
 
@@ -88,7 +96,6 @@ def main() -> None:
     logging.basicConfig(level=LOGGING_LEVEL)
 
     server_address = (HOST, PORT)
-    # Use DetectionServer instead of HTTPServer
     httpd = DetectionServer(server_address, DetectionRequestHandler)
 
     logging.info("Starting server on %s:%s...", HOST, PORT)
