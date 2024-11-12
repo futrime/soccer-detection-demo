@@ -13,7 +13,7 @@ def main() -> None:
         "image": image,
     }
 
-    data = pickle.dumps(request)
+    data = pickle.dumps(request, protocol=2)
     response = requests.post(
         f"http://{HOST}:{PORT}",
         data=data,

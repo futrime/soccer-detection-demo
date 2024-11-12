@@ -10,6 +10,7 @@ import transformers
 HOST: str = "localhost"
 PORT: int = 24680
 LOGGING_LEVEL: int = logging.INFO
+MODEL: str = "facebook/detr-resnet-50"
 
 
 class RequestModel(TypedDict):
@@ -42,7 +43,7 @@ class DetectionRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
-        self.wfile.write(pickle.dumps(response))
+        self.wfile.write(pickle.dumps(response, protocol=2))
 
 
 class DetectionServer(http.server.HTTPServer):
@@ -54,7 +55,11 @@ class DetectionServer(http.server.HTTPServer):
         RequestHandlerClass: Type[DetectionRequestHandler],
     ) -> None:
         device = 0 if torch.cuda.is_available() else -1
-        pipeline = transformers.pipeline(task="object-detection", device=device)
+        pipeline = transformers.pipeline(
+            task="object-detection",
+            model=MODEL,
+            device=device,
+        )
         assert isinstance(pipeline, transformers.pipelines.ObjectDetectionPipeline)
         self.pipeline = pipeline
 
