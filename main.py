@@ -56,7 +56,7 @@ class DetectionRequestHandler(http.server.BaseHTTPRequestHandler):
         logging.info("Inference done in %s seconds", end_time - start_time)
 
         logging.debug("Sending response...")
-        response_json = json.dumps(response)
+        response_json = json.dumps({"results": response})
         response_bytes = response_json.encode("utf-8")
 
         self.send_response(200)
